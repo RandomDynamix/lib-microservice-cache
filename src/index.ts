@@ -121,7 +121,7 @@ export default class MeshAssets {
             let tokenCache: string = await this.cache.get(`token:${idTokenHash}`);
             if(tokenCache) {
                 try{this.microservice.emit('info', 'MICROSERVICE CACHE', `FOUND CACHED EphemeralToken`);}catch(err){}
-                return JSON.parse(tokenCache);
+                return tokenCache;
             }
         } catch(err) {
             try{this.microservice.emit('error', 'MICROSERVICE CACHE', `**CACHE ERROR** getEphemeralTokenCache Error: ${JSON.stringify(err)}`);}catch(err){}
