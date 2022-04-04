@@ -24,19 +24,22 @@ export default class MeshAssets {
     getCache() {
         return this.cache;
     }
-    async getMeshContext() {
-        let ephemeralToken = await this.getEphemeralTokenCache();
+    async getMeshContext(proxiedToken) {
+        let identityToken = null;
+        let proxyToken = null;
+        let ephemeralToken = await this.getEphemeralTokenCache() || await this.queryEphemeralToken();
         if (ephemeralToken)
-            return {
-                correlationUUID: uuidv4(),
-                ephemeralToken: ephemeralToken
-            };
-        ephemeralToken = await this.queryEphemeralToken();
-        if (!ephemeralToken)
+            identityToken = ephemeralToken;
+        if (!identityToken)
             return null;
+        if (proxiedToken) {
+            identityToken = proxiedToken;
+            proxyToken = ephemeralToken;
+        }
         return {
             correlationUUID: uuidv4(),
-            ephemeralToken: ephemeralToken
+            ephemeralToken: identityToken,
+            proxyToken: proxyToken
         };
     }
     async getSiteConfiguration(site_id) {
@@ -52,6 +55,7 @@ export default class MeshAssets {
             siteConfiguration.id = site.id;
             siteConfiguration.url = site.url;
             siteConfiguration.master = site.master;
+            siteConfiguration.notification_email = site.notification_email;
             if (site.public_user?.length === 1)
                 siteConfiguration.public_user = site.public_user[0];
             this.cacheSiteConfiguration(siteConfiguration, CACHE_STATIC_ASSETS);
@@ -90,7 +94,7 @@ export default class MeshAssets {
                     this.microservice.emit('info', 'MICROSERVICE CACHE', `FOUND CACHED EphemeralToken`);
                 }
                 catch (err) { }
-                return JSON.parse(tokenCache);
+                return tokenCache;
             }
         }
         catch (err) {

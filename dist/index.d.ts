@@ -2,6 +2,7 @@ import Cache from './cache.js';
 export interface MeshContext {
     correlationUUID: string;
     ephemeralToken: string;
+    proxyToken: string | null;
 }
 export interface SiteMetadata {
     id?: string | null;
@@ -18,7 +19,7 @@ export default class MeshAssets {
     init(): Promise<void>;
     shutdown(): Promise<void>;
     getCache(): Cache;
-    getMeshContext(): Promise<MeshContext | null>;
+    getMeshContext(proxiedToken?: any): Promise<MeshContext | null>;
     getSiteConfiguration(site_id: string | null): Promise<any>;
     private queryEphemeralToken;
     private querySite;
