@@ -115,12 +115,13 @@ export default class MeshAssets {
     //*************************************************************
 
     //** EPHEMERAL TOKEN ***************************************
-    private async getEphemeralTokenCache(): Promise<any> {
+    private async getEphemeralTokenCache(): Promise<string | null> {
         try {
             let idTokenHash: string = hash(this.idToken);
             let tokenCache: string = await this.cache.get(`token:${idTokenHash}`);
             if(tokenCache) {
                 try{this.microservice.emit('info', 'MICROSERVICE CACHE', `FOUND CACHED EphemeralToken`);}catch(err){}
+                try{this.microservice.emit('debug', 'MICROSERVICE CACHE', `EPHEMERAL TOKEN: ${tokenCache}`);}catch(err){}
                 return tokenCache;
             }
         } catch(err) {
