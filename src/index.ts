@@ -82,6 +82,7 @@ export default class MeshAssets {
             siteConfiguration.id = site.id;
             siteConfiguration.url = site.url;
             siteConfiguration.master = site.master;
+            siteConfiguration.notification_email = site.notification_email;
             if(site.public_user?.length === 1) siteConfiguration.public_user = site.public_user[0];
 
             this.cacheSiteConfiguration(siteConfiguration, CACHE_STATIC_ASSETS);
