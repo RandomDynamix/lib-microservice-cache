@@ -10,7 +10,8 @@ const MESH_PREFIX             = 'MESH';
 
 export interface MeshContext {
     correlationUUID: string,
-    ephemeralToken: string
+    ephemeralToken:  string
+    proxyToken:      string | null
 }
 
 export interface SiteMetadata {
@@ -44,20 +45,24 @@ export default class MeshAssets {
         return this.cache;
     }
 
-    async getMeshContext(): Promise<MeshContext | null> {
-        let ephemeralToken: any = await this.getEphemeralTokenCache();
-        if(ephemeralToken) return {
-            correlationUUID: uuidv4(),
-            ephemeralToken:  ephemeralToken
-        };
+    async getMeshContext(proxiedToken?: any): Promise<MeshContext | null> {
+        let identityToken: any = null;
+        let proxyToken: any    = null;
 
-        ephemeralToken = await this.queryEphemeralToken();
-        if(!ephemeralToken) return null;
+        let ephemeralToken: any = await this.getEphemeralTokenCache() || await this.queryEphemeralToken();
+        if(ephemeralToken) identityToken = ephemeralToken;
 
-        //Do NOT add to Cache - as this is SOLELY handled by the Authorizer
+        if(!identityToken) return null;
+
+        if(proxiedToken) {
+            identityToken = proxiedToken;
+            proxyToken = ephemeralToken;
+        }
+
         return {
             correlationUUID: uuidv4(),
-            ephemeralToken:  ephemeralToken
+            ephemeralToken:  identityToken,
+            proxyToken:      proxyToken
         };
     }
 
