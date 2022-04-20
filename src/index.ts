@@ -6,7 +6,7 @@ const CACHE_DEFAULT           =    60 * 1000;   //1 Minute in MILLISECONDS
 const CACHE_STATIC_ASSETS     = 86400 * 1000;   //1 Day in MILLISECONDS
 
 const PREFIX_AUTHORIZATION    = 'AUTHORIZATION';
-const MESH_PREFIX             = 'MESH';
+const INTERNAL_PREFIX         = 'INTERNAL';
 
 export interface MeshContext {
     correlationUUID: string,
@@ -105,7 +105,7 @@ export default class MeshAssets {
     private async querySite(siteMeta: SiteMetadata | null) {
         try{this.microservice.emit('info', 'MICROSERVICE CACHE', `QUERYING Site (${JSON.stringify(siteMeta)})`);}catch(err){}
         if(!siteMeta) siteMeta = {master: true};
-        let result: any = await this.microservice.query('ccti.sites.retrieve', await this.getMeshContext(), {filter: siteMeta}, this.meshTimeout, MESH_PREFIX);
+        let result: any = await this.microservice.query('ccti.sites.retrieve', await this.getMeshContext(), {filter: siteMeta}, this.meshTimeout, INTERNAL_PREFIX);
         if(result?.length === 1) return result[0];
         return null;
     }

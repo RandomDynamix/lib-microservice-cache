@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 const CACHE_DEFAULT = 60 * 1000;
 const CACHE_STATIC_ASSETS = 86400 * 1000;
 const PREFIX_AUTHORIZATION = 'AUTHORIZATION';
-const MESH_PREFIX = 'MESH';
+const INTERNAL_PREFIX = 'INTERNAL';
 export default class MeshAssets {
     constructor(microservice, idToken) {
         this.microservice = microservice;
@@ -80,7 +80,7 @@ export default class MeshAssets {
         catch (err) { }
         if (!siteMeta)
             siteMeta = { master: true };
-        let result = await this.microservice.query('ccti.sites.retrieve', await this.getMeshContext(), { filter: siteMeta }, this.meshTimeout, MESH_PREFIX);
+        let result = await this.microservice.query('ccti.sites.retrieve', await this.getMeshContext(), { filter: siteMeta }, this.meshTimeout, INTERNAL_PREFIX);
         if (result?.length === 1)
             return result[0];
         return null;
