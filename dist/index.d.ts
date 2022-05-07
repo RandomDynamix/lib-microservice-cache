@@ -1,4 +1,3 @@
-import Cache from './cache.js';
 export interface MeshContext {
     correlationUUID: string;
     ephemeralToken: string;
@@ -18,12 +17,11 @@ export default class MeshAssets {
     constructor(microservice: any, idToken: string);
     init(): Promise<void>;
     shutdown(): Promise<void>;
-    getCache(): Cache;
     getMeshContext(proxiedToken?: any): Promise<MeshContext | null>;
-    getSiteConfiguration(site_id: string | null): Promise<any>;
+    getSiteConfiguration(siteMeta: SiteMetadata | null): Promise<any>;
+    getSite(siteMeta: SiteMetadata | null): Promise<any>;
     private queryEphemeralToken;
     private querySite;
     private getEphemeralTokenCache;
-    private cacheSiteConfiguration;
-    private getSiteConfigurationCache;
+    private getSiteCache;
 }

@@ -1,8 +1,6 @@
 import Cache from './cache.js';
 import hash from 'object-hash';
 import { v4 as uuidv4 } from 'uuid';
-const CACHE_DEFAULT = 60 * 1000;
-const CACHE_STATIC_ASSETS = 86400 * 1000;
 const PREFIX_AUTHORIZATION = 'AUTHORIZATION';
 const INTERNAL_PREFIX = 'INTERNAL';
 export default class MeshAssets {
@@ -21,9 +19,6 @@ export default class MeshAssets {
         await this.cache.init();
     }
     async shutdown() { }
-    getCache() {
-        return this.cache;
-    }
     async getMeshContext(proxiedToken) {
         let identityToken = null;
         let proxyToken = null;
@@ -42,26 +37,44 @@ export default class MeshAssets {
             proxyToken: proxyToken
         };
     }
-    async getSiteConfiguration(site_id) {
-        let siteMeta = site_id ? { site_id } : null;
-        let siteConfiguration = await this.getSiteConfigurationCache(siteMeta);
-        if (siteConfiguration)
-            return siteConfiguration;
-        if (siteMeta?.site_id)
-            siteMeta.id = siteMeta.site_id;
-        let site = await this.querySite(siteMeta);
+    async getSiteConfiguration(siteMeta) {
+        let site = await this.getSite(siteMeta);
         if (site?.jdoc_config) {
             let siteConfiguration = site.jdoc_config;
             siteConfiguration.id = site.id;
             siteConfiguration.url = site.url;
             siteConfiguration.master = site.master;
-            siteConfiguration.notification_email = site.notification_email;
             if (site.public_user?.length === 1)
                 siteConfiguration.public_user = site.public_user[0];
-            this.cacheSiteConfiguration(siteConfiguration, CACHE_STATIC_ASSETS);
+            siteConfiguration.cognito = null;
+            for (let authenticationMethod of siteConfiguration.authentication) {
+                if (authenticationMethod.userPool)
+                    siteConfiguration.cognito = authenticationMethod;
+            }
+            siteConfiguration.notifications = Object.assign(siteConfiguration.notifications, {
+                logo: siteConfiguration.theme.logoDesktop.uri,
+                logoAlt: siteConfiguration.theme.nameTag,
+                color: siteConfiguration.theme.palette.primary.main,
+                companyName: siteConfiguration.theme.support.legal.name,
+                companyAddress: siteConfiguration.theme.support.legal.address,
+                portalName: siteConfiguration.theme.tabTitle,
+                routingEmail: siteConfiguration.notifications.routing.administration,
+                opsEmail: siteConfiguration.notifications.routing.operations,
+                teamName: siteConfiguration.theme.support.operations.name,
+                supportEmail: siteConfiguration.theme.support.operations.email,
+                supportPhone: siteConfiguration.theme.support.operations.phone
+            });
             return siteConfiguration;
         }
         return null;
+    }
+    async getSite(siteMeta) {
+        let cachedSite = await this.getSiteCache(siteMeta);
+        if (cachedSite)
+            return cachedSite;
+        if (siteMeta?.site_id)
+            siteMeta.id = siteMeta.site_id;
+        return await this.querySite(siteMeta);
     }
     async queryEphemeralToken() {
         try {
@@ -109,49 +122,31 @@ export default class MeshAssets {
         catch (err) { }
         return null;
     }
-    async cacheSiteConfiguration(siteConfiguration, expiration = CACHE_DEFAULT) {
+    async getSiteCache(siteMeta) {
         try {
-            this.microservice.emit('info', 'MICROSERVICE CACHE', `CACHING SiteConfiguration (${Math.round(expiration / 1000)} s)`);
-        }
-        catch (err) { }
-        try {
-            await this.cache.set(`siteConfiguration:${siteConfiguration.id}`, JSON.stringify(siteConfiguration), expiration);
-            await this.cache.set(`siteConfiguration:${siteConfiguration.url}`, JSON.stringify(siteConfiguration), expiration);
-            if (siteConfiguration.master)
-                await this.cache.set(`siteConfiguration:master`, JSON.stringify(siteConfiguration), expiration);
-        }
-        catch (err) {
-            try {
-                this.microservice.emit('error', 'MICROSERVICE CACHE', `**CACHE ERROR** cacheSiteConfiguration Error: ${JSON.stringify(err)}`);
-            }
-            catch (err) { }
-        }
-    }
-    async getSiteConfigurationCache(siteMeta) {
-        try {
-            let siteConfigurationCache = null;
+            let siteCache = null;
             if (!siteMeta)
-                siteConfigurationCache = await this.cache.get(`siteConfiguration:master`);
+                siteCache = await this.cache.get(`site:master`);
             if (siteMeta?.url)
-                siteConfigurationCache = await this.cache.get(`siteConfiguration:${siteMeta.url}`);
+                siteCache = await this.cache.get(`site:${siteMeta.url}`);
             if (siteMeta?.site_id)
-                siteConfigurationCache = await this.cache.get(`siteConfiguration:${siteMeta.site_id}`);
-            if (siteConfigurationCache) {
+                siteCache = await this.cache.get(`site:${siteMeta.site_id}`);
+            if (siteCache) {
                 try {
-                    this.microservice.emit('info', 'MICROSERVICE CACHE', `FOUND CACHED SiteConfiguration`);
+                    this.microservice.emit('info', 'AUTHORIZATION', `FOUND CACHED Site`);
                 }
                 catch (err) { }
-                return JSON.parse(siteConfigurationCache);
+                return JSON.parse(siteCache);
             }
         }
         catch (err) {
             try {
-                this.microservice.emit('error', 'MICROSERVICE CACHE', `**CACHE ERROR** getSiteConfigurationCache Error: ${JSON.stringify(err)}`);
+                this.microservice.emit('error', 'AUTHORIZATION', `**CACHE ERROR** getSiteCache Error: ${JSON.stringify(err)}`);
             }
             catch (err) { }
         }
         try {
-            this.microservice.emit('info', 'MICROSERVICE CACHE', `NO CACHE for SiteConfiguration`);
+            this.microservice.emit('info', 'AUTHORIZATION', `NO CACHE for Site`);
         }
         catch (err) { }
         return null;

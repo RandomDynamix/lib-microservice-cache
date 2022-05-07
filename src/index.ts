@@ -2,9 +2,6 @@ import Cache                         from './cache.js';
 import hash                          from 'object-hash';
 import {v4 as uuidv4}                from 'uuid';
 
-const CACHE_DEFAULT           =    60 * 1000;   //1 Minute in MILLISECONDS
-const CACHE_STATIC_ASSETS     = 86400 * 1000;   //1 Day in MILLISECONDS
-
 const PREFIX_AUTHORIZATION    = 'AUTHORIZATION';
 const INTERNAL_PREFIX         = 'INTERNAL';
 
@@ -41,10 +38,6 @@ export default class MeshAssets {
     //*********************************************************
     //*** EXPOSED MESH ASSETS METHODS ***
     //*********************************************************
-    getCache(): Cache {
-        return this.cache;
-    }
-
     async getMeshContext(proxiedToken?: any): Promise<MeshContext | null> {
         let identityToken: any = null;
         let proxyToken: any    = null;
@@ -67,30 +60,53 @@ export default class MeshAssets {
     }
 
 
-    async getSiteConfiguration(site_id: string | null) {
-        //This can be requested by site_id or null(Master)
-        let siteMeta: SiteMetadata | null = site_id ? { site_id } : null;
+    async getSiteConfiguration(siteMeta: SiteMetadata | null) {
 
-        let siteConfiguration: any = await this.getSiteConfigurationCache(siteMeta);
-        if(siteConfiguration) return siteConfiguration;
-
-        if(siteMeta?.site_id) siteMeta.id = siteMeta.site_id;
-        let site: any = await this.querySite(siteMeta);
+        let site: any = await this.getSite(siteMeta);
         if(site?.jdoc_config) {
-            //Optimize for Cache
             let siteConfiguration: any = site.jdoc_config;
+
+            //Optimize Configuration
             siteConfiguration.id = site.id;
             siteConfiguration.url = site.url;
             siteConfiguration.master = site.master;
-            siteConfiguration.notification_email = site.notification_email;
-            if(site.public_user?.length === 1) siteConfiguration.public_user = site.public_user[0];
 
-            this.cacheSiteConfiguration(siteConfiguration, CACHE_STATIC_ASSETS);
+            if(site.public_user?.length === 1)
+                siteConfiguration.public_user = site.public_user[0];
+
+            //Cognito
+            siteConfiguration.cognito = null;
+            for(let authenticationMethod of siteConfiguration.authentication) {
+                if(authenticationMethod.userPool) siteConfiguration.cognito = authenticationMethod;
+            }
+
+            //Notifications
+            siteConfiguration.notifications = Object.assign(siteConfiguration.notifications, {
+                logo: siteConfiguration.theme.logoDesktop.uri,
+                logoAlt: siteConfiguration.theme.nameTag,
+                color: siteConfiguration.theme.palette.primary.main,
+                companyName: siteConfiguration.theme.support.legal.name,
+                companyAddress: siteConfiguration.theme.support.legal.address,
+                portalName: siteConfiguration.theme.tabTitle,
+                routingEmail: siteConfiguration.notifications.routing.administration,
+                opsEmail: siteConfiguration.notifications.routing.operations,
+                teamName: siteConfiguration.theme.support.operations.name,
+                supportEmail: siteConfiguration.theme.support.operations.email,
+                supportPhone: siteConfiguration.theme.support.operations.phone
+            });
+
             return siteConfiguration;
         }
         return null;
     }
 
+    async getSite(siteMeta: SiteMetadata | null) {
+        let cachedSite: any = await this.getSiteCache(siteMeta);
+        if(cachedSite) return cachedSite;
+
+        if(siteMeta?.site_id) siteMeta.id = siteMeta.site_id;
+        return await this.querySite(siteMeta);
+    }
 
     //*********************************************************
     //*** MESH REQUEST METHODS ***
@@ -131,33 +147,22 @@ export default class MeshAssets {
     }
 
     //** SITE ***********************************************
-    private async cacheSiteConfiguration(siteConfiguration: any, expiration: number = CACHE_DEFAULT): Promise<void> {
-        try{this.microservice.emit('info', 'MICROSERVICE CACHE', `CACHING SiteConfiguration (${Math.round(expiration / 1000)} s)`);}catch(err){}
+    private async getSiteCache(siteMeta: SiteMetadata | null): Promise<any> {
         try {
-            await this.cache.set(`siteConfiguration:${siteConfiguration.id}`, JSON.stringify(siteConfiguration), expiration);
-            await this.cache.set(`siteConfiguration:${siteConfiguration.url}`, JSON.stringify(siteConfiguration), expiration);
-            if(siteConfiguration.master) await this.cache.set(`siteConfiguration:master`, JSON.stringify(siteConfiguration), expiration);
-        } catch(err) {
-            try{this.microservice.emit('error', 'MICROSERVICE CACHE', `**CACHE ERROR** cacheSiteConfiguration Error: ${JSON.stringify(err)}`);}catch(err){}
-            //await this.purgeSiteConfigurationCache();
-        }
-    }
-    private async getSiteConfigurationCache(siteMeta: SiteMetadata | null): Promise<any> {
-        try {
-            let siteConfigurationCache: string | null = null;
+            let siteCache: string | null = null;
 
-            if (!siteMeta)         siteConfigurationCache = await this.cache.get(`siteConfiguration:master`);
-            if (siteMeta?.url)     siteConfigurationCache = await this.cache.get(`siteConfiguration:${siteMeta.url}`);
-            if (siteMeta?.site_id) siteConfigurationCache = await this.cache.get(`siteConfiguration:${siteMeta.site_id}`);
+            if (!siteMeta)         siteCache = await this.cache.get(`site:master`);
+            if (siteMeta?.url)     siteCache = await this.cache.get(`site:${siteMeta.url}`);
+            if (siteMeta?.site_id) siteCache = await this.cache.get(`site:${siteMeta.site_id}`);
 
-            if (siteConfigurationCache) {
-                try{this.microservice.emit('info', 'MICROSERVICE CACHE', `FOUND CACHED SiteConfiguration`);}catch(err){}
-                return JSON.parse(siteConfigurationCache);
+            if (siteCache) {
+                try{this.microservice.emit('info', 'AUTHORIZATION', `FOUND CACHED Site`);}catch(err){}
+                return JSON.parse(siteCache);
             }
         } catch (err) {
-            try{this.microservice.emit('error', 'MICROSERVICE CACHE', `**CACHE ERROR** getSiteConfigurationCache Error: ${JSON.stringify(err)}`);}catch(err){}
+            try{this.microservice.emit('error', 'AUTHORIZATION', `**CACHE ERROR** getSiteCache Error: ${JSON.stringify(err)}`);}catch(err){}
         }
-        try{this.microservice.emit('info', 'MICROSERVICE CACHE', `NO CACHE for SiteConfiguration`);}catch(err){}
+        try{this.microservice.emit('info', 'AUTHORIZATION', `NO CACHE for Site`);}catch(err){}
         return null;
     }
 }
