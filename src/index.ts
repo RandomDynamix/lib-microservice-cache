@@ -71,28 +71,19 @@ export default class MeshAssets {
             siteConfiguration.url = site.url;
             siteConfiguration.master = site.master;
 
-            if(site.public_user?.length === 1)
-                siteConfiguration.public_user = site.public_user[0];
-
-            //Cognito
-            siteConfiguration.cognito = null;
-            for(let authenticationMethod of siteConfiguration.authentication) {
-                if(authenticationMethod.userPool) siteConfiguration.cognito = authenticationMethod;
-            }
-
             //Notifications
             siteConfiguration.notifications = Object.assign(siteConfiguration.notifications, {
                 logo: siteConfiguration.theme.logoDesktop.uri,
                 logoAlt: siteConfiguration.theme.nameTag,
                 color: siteConfiguration.theme.palette.primary.main,
-                companyName: siteConfiguration.theme.support.legal.name,
-                companyAddress: siteConfiguration.theme.support.legal.address,
+                companyName: siteConfiguration.contacts.corporate.name,
+                companyAddress: siteConfiguration.contacts.corporate.address,
                 portalName: siteConfiguration.theme.tabTitle,
                 routingEmail: siteConfiguration.notifications.routing.administration,
                 opsEmail: siteConfiguration.notifications.routing.operations,
-                teamName: siteConfiguration.theme.support.operations.name,
-                supportEmail: siteConfiguration.theme.support.operations.email,
-                supportPhone: siteConfiguration.theme.support.operations.phone
+                teamName: siteConfiguration.contacts.operations.name,
+                supportEmail: siteConfiguration.contacts.operations.email,
+                supportPhone: siteConfiguration.contacts.operations.phone
             });
 
             return siteConfiguration;
