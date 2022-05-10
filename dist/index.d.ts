@@ -18,10 +18,12 @@ export default class MeshAssets {
     init(): Promise<void>;
     shutdown(): Promise<void>;
     getMeshContext(proxiedToken?: any): Promise<MeshContext | null>;
-    getSiteConfiguration(siteMeta: SiteMetadata | null): Promise<any>;
+    getSiteConfiguration(siteMeta: SiteMetadata | null, includeNotifications?: boolean): Promise<any>;
     getSite(siteMeta: SiteMetadata | null): Promise<any>;
     private queryEphemeralToken;
     private querySite;
+    private queryTheme;
+    private queryFile;
     private getEphemeralTokenCache;
     private getSiteCache;
 }

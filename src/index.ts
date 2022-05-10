@@ -60,7 +60,7 @@ export default class MeshAssets {
     }
 
 
-    async getSiteConfiguration(siteMeta: SiteMetadata | null) {
+    async getSiteConfiguration(siteMeta: SiteMetadata | null, includeNotifications: boolean = false) {
 
         let site: any = await this.getSite(siteMeta);
         if(site?.jdoc_config) {
@@ -72,19 +72,27 @@ export default class MeshAssets {
             siteConfiguration.master = site.master;
 
             //Notifications
-            siteConfiguration.notifications = Object.assign(siteConfiguration.notifications, {
-                logo: siteConfiguration.theme.logoDesktop.uri,
-                logoAlt: siteConfiguration.theme.nameTag,
-                color: siteConfiguration.theme.palette.primary.main,
-                companyName: siteConfiguration.contacts.corporate.name,
-                companyAddress: siteConfiguration.contacts.corporate.address,
-                portalName: siteConfiguration.theme.tabTitle,
-                routingEmail: siteConfiguration.notifications.routing.administration,
-                opsEmail: siteConfiguration.notifications.routing.operations,
-                teamName: siteConfiguration.contacts.operations.name,
-                supportEmail: siteConfiguration.contacts.operations.email,
-                supportPhone: siteConfiguration.contacts.operations.phone
-            });
+            if(includeNotifications) {
+                let siteTheme: any = await this.queryTheme(site.theme_id);
+                if(!siteTheme) throw `INVALID SITE THEME for ${site.url}`;
+
+                let desktopLogo: any = await this.queryFile(siteTheme.jdoc.logoDesktop);
+                if(!desktopLogo) throw `INVALID SITE THEME CONFIGURATION for ${site.url}`;
+
+                siteConfiguration.notifications = Object.assign(siteConfiguration.notifications, {
+                    logo: desktopLogo.uri,
+                    logoAlt: desktopLogo.nameTag,
+                    color: siteTheme.jdoc.palette.primary.main,
+                    companyName: siteConfiguration.contacts.corporate.name,
+                    companyAddress: siteConfiguration.contacts.corporate.address,
+                    portalName: siteTheme.jdoc.tabTitle,
+                    routingEmail: siteConfiguration.notifications.routing.administration,
+                    opsEmail: siteConfiguration.notifications.routing.operations,
+                    teamName: siteConfiguration.contacts.operations.name,
+                    supportEmail: siteConfiguration.contacts.operations.email,
+                    supportPhone: siteConfiguration.contacts.operations.phone
+                });
+            }
 
             return siteConfiguration;
         }
@@ -115,6 +123,18 @@ export default class MeshAssets {
         let result: any = await this.microservice.query('ccti.sites.retrieve', await this.getMeshContext(), {filter: siteMeta}, this.meshTimeout, INTERNAL_PREFIX);
         if(result?.length === 1) return result[0];
         return null;
+    }
+
+    private async queryTheme(theme_id: string) {
+        try{this.microservice.emit('info', 'MICROSERVICE', `QUERYING Theme (${theme_id})`);}catch(err){}
+        let result: any = await this.microservice.query('ccti.themes.retrieve', await this.getMeshContext(), {filter: { id: theme_id }}, this.meshTimeout, INTERNAL_PREFIX);
+        if(result?.length === 1) return result[0];
+        return null;
+    }
+
+    private async queryFile(file_id: string) {
+        try{this.microservice.emit('info', 'MICROSERVICE', `QUERYING File (${file_id}`);}catch(err){}
+        return await this.microservice.query('ccti.file.retrieve', await this.getMeshContext(), {filter: { id: file_id }}, this.meshTimeout, INTERNAL_PREFIX);
     }
 
     //*************************************************************
