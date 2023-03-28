@@ -9,6 +9,7 @@ export default class MeshAssets {
         this.idToken = idToken;
         this.cache = null;
         this.meshTimeout = parseInt(process.env.MESH_TIMEOUT || '7500');
+        this.prefix = uuidv4();
     }
     async init() {
         if (!this.microservice)
@@ -76,6 +77,32 @@ export default class MeshAssets {
         if (siteMeta?.site_id)
             siteMeta.id = siteMeta.site_id;
         return await this.querySite(siteMeta);
+    }
+    async addKey(key, value, expireMS) {
+        try {
+            await this.cache.set(`${this.prefix}:${key}`, value, expireMS);
+            return true;
+        }
+        catch (err) {
+            try {
+                this.microservice.emit('error', 'MICROSERVICE CACHE', `**CACHE ERROR** addKey Error: ${JSON.stringify(err)}`);
+            }
+            catch (err) { }
+        }
+        return false;
+    }
+    async getKey(key) {
+        let value = null;
+        try {
+            value = await this.cache.get(`${this.prefix}:${key}`);
+        }
+        catch (err) {
+            try {
+                this.microservice.emit('error', 'MICROSERVICE CACHE', `**CACHE ERROR** getKey Error: ${JSON.stringify(err)}`);
+            }
+            catch (err) { }
+        }
+        return value;
     }
     async queryEphemeralToken() {
         try {

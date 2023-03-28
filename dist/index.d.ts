@@ -14,12 +14,15 @@ export default class MeshAssets {
     private idToken;
     cache: any;
     meshTimeout: number;
+    prefix: string;
     constructor(microservice: any, idToken: string);
     init(): Promise<void>;
     shutdown(): Promise<void>;
     getMeshContext(proxiedToken?: any): Promise<MeshContext | null>;
     getSiteConfiguration(siteMeta: SiteMetadata | null, includeNotifications?: boolean): Promise<any>;
     getSite(siteMeta: SiteMetadata | null): Promise<any>;
+    addKey(key: string, value: string, expireMS: number): Promise<boolean>;
+    getKey(key: string): Promise<string | null>;
     private queryEphemeralToken;
     private querySite;
     private queryTheme;

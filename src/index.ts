@@ -21,6 +21,7 @@ export interface SiteMetadata {
 export default class MeshAssets {
     cache: any                  = null;
     meshTimeout: number         = parseInt(process.env.MESH_TIMEOUT   ||   '7500');    //7.5 Seconds
+    prefix: string              = uuidv4();  //UUID to prevent cache collisions
 
     constructor(private microservice: any, private idToken: string) {}
 
@@ -105,6 +106,26 @@ export default class MeshAssets {
 
         if(siteMeta?.site_id) siteMeta.id = siteMeta.site_id;
         return await this.querySite(siteMeta);
+    }
+
+    async addKey(key: string, value: string, expireMS: number): Promise<boolean> {
+        try {
+            await this.cache.set(`${this.prefix}:${key}`, value, expireMS);
+            return true;
+        } catch(err) {
+            try{this.microservice.emit('error', 'MICROSERVICE CACHE', `**CACHE ERROR** addKey Error: ${JSON.stringify(err)}`);}catch(err){}
+        }
+        return false;
+    }
+
+    async getKey(key: string): Promise<string | null> {
+        let value: string | null = null;
+        try {
+            value = await this.cache.get(`${this.prefix}:${key}`);
+        } catch(err) {
+            try{this.microservice.emit('error', 'MICROSERVICE CACHE', `**CACHE ERROR** getKey Error: ${JSON.stringify(err)}`);}catch(err){}
+        }
+        return value;
     }
 
     //*********************************************************
