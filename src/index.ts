@@ -21,7 +21,7 @@ export interface SiteMetadata {
 export default class MeshAssets {
     cache: any                  = null;
     meshTimeout: number         = parseInt(process.env.MESH_TIMEOUT   ||   '7500');    //7.5 Seconds
-    prefix: string              = uuidv4();  //UUID to prevent cache collisions
+    prefix: string | null       = null;
 
     constructor(private microservice: any, private idToken: string) {}
 
@@ -31,6 +31,8 @@ export default class MeshAssets {
 
         this.cache = new Cache(this.microservice.emit);
         await this.cache.init();
+
+        this.prefix = hash(this.idToken);
     }
 
     async shutdown(): Promise<void> {}

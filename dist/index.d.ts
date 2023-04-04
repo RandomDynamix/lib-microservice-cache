@@ -14,7 +14,7 @@ export default class MeshAssets {
     private idToken;
     cache: any;
     meshTimeout: number;
-    prefix: string;
+    prefix: string | null;
     constructor(microservice: any, idToken: string);
     init(): Promise<void>;
     shutdown(): Promise<void>;

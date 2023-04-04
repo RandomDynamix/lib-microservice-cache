@@ -9,7 +9,7 @@ export default class MeshAssets {
         this.idToken = idToken;
         this.cache = null;
         this.meshTimeout = parseInt(process.env.MESH_TIMEOUT || '7500');
-        this.prefix = uuidv4();
+        this.prefix = null;
     }
     async init() {
         if (!this.microservice)
@@ -18,6 +18,7 @@ export default class MeshAssets {
             throw 'CACHE INITIALIZATON ERROR: Missing idToken';
         this.cache = new Cache(this.microservice.emit);
         await this.cache.init();
+        this.prefix = hash(this.idToken);
     }
     async shutdown() { }
     async getMeshContext(proxiedToken) {
