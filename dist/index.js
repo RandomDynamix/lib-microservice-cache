@@ -50,12 +50,12 @@ export default class MeshAssets {
                 let siteTheme = await this.queryTheme(site.theme_id);
                 if (!siteTheme)
                     throw `INVALID SITE THEME for ${site.url}`;
-                let desktopLogo = await this.queryFile(siteTheme.jdoc.logoDesktop);
+                let desktopLogo = await this.queryFile(siteTheme.jdoc.logoDesktopFileID);
                 if (!desktopLogo)
                     throw `INVALID SITE THEME CONFIGURATION for ${site.url}`;
                 siteConfiguration.notifications = Object.assign(siteConfiguration.notifications, {
-                    logo: desktopLogo.uri,
-                    logoAlt: desktopLogo.nameTag,
+                    logo: desktopLogo.uri.url,
+                    logoAlt: 'Site Logo',
                     color: siteTheme.jdoc.palette.primary.main,
                     companyName: siteConfiguration.contacts.corporate.name,
                     companyAddress: siteConfiguration.contacts.corporate.address,
@@ -142,7 +142,7 @@ export default class MeshAssets {
             this.microservice.emit('info', 'MICROSERVICE', `QUERYING File (${file_id}`);
         }
         catch (err) { }
-        return await this.microservice.query('ccti.file.retrieve', await this.getMeshContext(), { filter: { id: file_id } }, this.meshTimeout, INTERNAL_PREFIX);
+        return await this.microservice.query('logic.file.retrieve', await this.getMeshContext(), { filter: { id: file_id } }, this.meshTimeout, INTERNAL_PREFIX);
     }
     async getEphemeralTokenCache() {
         try {
